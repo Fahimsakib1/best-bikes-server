@@ -64,6 +64,25 @@ async function run(){
             const result = await usersCollection.insertOne(user);
             res.send(result);
         })
+
+        //get a specific user  based on user email to check he is seller or not. The dashboard options will be shown based on the user role
+        app.get('/users/seller/:email', async(req, res) => {
+            const email = req.params.email;
+            console.log("Seller Email",email)
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            res.send({ isSeller: user?.role === 'Seller' });
+        })
+
+        //get a specific user  based on user email to check he is buyer or not. The dashboard options will be shown based on the user role
+        app.get('/users/buyer/:email', async(req, res) => {
+            const email = req.params.email;
+            console.log("Buyer Email",email)
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            res.send({ isBuyer: user?.role === 'Buyer' });
+        })
+
     }
 
     finally{
