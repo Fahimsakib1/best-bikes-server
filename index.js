@@ -28,6 +28,7 @@ async function run(){
         const categoriesCollection = client.db('bestBikes').collection('categories');
         const bikeDetailsCollection = client.db('bestBikes').collection('bikeDetailsBrandWise');
         const usersCollection = client.db('bestBikes').collection('users');
+        const productsCollection = client.db('bestBikes').collection('products');
 
         //get all the categories
         app.get('/categories', async(req, res) => {
@@ -65,22 +66,48 @@ async function run(){
             res.send(result);
         })
 
-        //get a specific user  based on user email to check he is seller or not. The dashboard options will be shown based on the user role
+        //get a specific user  based on  email to check he is seller or not. The dashboard options will be shown based on the user role
         app.get('/users/seller/:email', async(req, res) => {
             const email = req.params.email;
-            console.log("Seller Email",email)
+            //console.log("Seller Email",email)
             const query = { email: email };
             const user = await usersCollection.findOne(query);
             res.send({ isSeller: user?.role === 'Seller' });
         })
 
-        //get a specific user  based on user email to check he is buyer or not. The dashboard options will be shown based on the user role
+        //get a specific user  based on  email to check he is buyer or not. The dashboard options will be shown based on the user role
         app.get('/users/buyer/:email', async(req, res) => {
             const email = req.params.email;
-            console.log("Buyer Email",email)
+            //console.log("Buyer Email",email)
             const query = { email: email };
             const user = await usersCollection.findOne(query);
             res.send({ isBuyer: user?.role === 'Buyer' });
+        })
+
+
+         //get the Admin using email. The dashboard options will be shown based on the user role
+        app.get('/users/admin/:email', async(req, res) => {
+            const email = req.params.email;
+            //console.log("Admin Email",email)
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            res.send({ isAdmin: user?.role === 'Admin' });
+        })
+
+        //get all the users based on email to show the user role on a badge on header section
+        app.get('/users', async(req, res) => {
+            const email = req.query.email;
+            const filter = {email: email};
+            const result = await usersCollection.findOne(filter);
+            res.send(result);
+        })
+
+        //add product by seller
+        app.post('/products', async(req, res) => {
+            const productInfo = req.body;
+            console.log(productInfo);
+            const result = await productsCollection.insertOne(productInfo);
+            res.send(result);
         })
 
     }
