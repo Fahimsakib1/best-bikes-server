@@ -41,7 +41,7 @@ async function run(){
         app.get('/category/:id', async(req, res) => {
             const id = req.params.id;
             const query = {category_id :id};
-            const result = await bikeDetailsCollection.find(query).toArray();
+            const result = await bikeDetailsCollection.find(query).sort({posted_date : -1}).toArray();
             res.send(result);
         })
 
@@ -94,6 +94,7 @@ async function run(){
             res.send({ isAdmin: user?.role === 'Admin' });
         })
 
+
         //get all the users based on email to show the user role on a badge on header section
         app.get('/users', async(req, res) => {
             const email = req.query.email;
@@ -118,7 +119,6 @@ async function run(){
             const query = {email: email};
             const result = await bikeDetailsCollection.find(query).sort({posted_date: -1}).toArray();
             res.send(result);
-
         })
 
         //delete a product by the seller
@@ -127,6 +127,24 @@ async function run(){
             console.log("Deleting ID", id)
             const query = {_id : ObjectId(id)};
             const result = await bikeDetailsCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        //get all sellers to show the admin on All Sellers route
+        app.get('/sellers', async(req, res) => {
+            const query = {
+                role: 'Seller'
+            }
+            const result = await usersCollection.find(query).sort({photo: -1}).toArray();
+            res.send(result);
+        })
+
+        //get all buyers to show the admin on All Buyers route
+        app.get('/buyers', async(req, res) => {
+            const query = {
+                role: 'Buyer'
+            }
+            const result = await usersCollection.find(query).sort({photo: -1}).toArray();
             res.send(result);
         })
 
