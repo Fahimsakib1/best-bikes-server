@@ -29,6 +29,7 @@ async function run(){
         const bikeDetailsCollection = client.db('bestBikes').collection('bikeDetailsBrandWise');
         const usersCollection = client.db('bestBikes').collection('users');
         const productsCollection = client.db('bestBikes').collection('products');
+        const reportedProductsCollection = client.db('bestBikes').collection('reportedProducts');
 
         //get all the categories
         app.get('/categories', async(req, res) => {
@@ -163,6 +164,45 @@ async function run(){
             console.log("Deleting ID Of Buyer", id)
             const query = {_id : ObjectId(id)};
             const result = await usersCollection.deleteOne(query);
+            res.send(result);
+        }) 
+
+        //Post Reported Products
+        app.post('/reportedProducts', async(req, res) => {
+            const reportedProductInfo = req.body;
+            console.log(reportedProductInfo);
+            
+            const query = {
+                productDataBaseId: reportedProductInfo.productDataBaseId ,
+                reporterEmail:reportedProductInfo.reporterEmail
+            }
+
+            const alreadyStoredSameProductReportInDataBase = await reportedProductsCollection.find(query).toArray();
+            console.log("Already Stored Same Report to Database", alreadyStoredSameProductReportInDataBase.length);
+            
+            if (alreadyStoredSameProductReportInDataBase.length) {
+                const message = ` ${reportedProductInfo.reporterName}, You have already added this product's report to us`;
+                return res.send({ acknowledged: false, message });
+            }
+            
+            const result = await reportedProductsCollection.insertOne(reportedProductInfo);
+            res.send(result);
+
+        })
+
+        //get all the reported Products
+        app.get('/reportedProducts', async(req, res) => {
+            const query = {}
+            const result = await reportedProductsCollection.find(query).sort({report_posted_date : -1}).toArray();
+            res.send(result);
+        })
+
+        //delete review By Admin
+        app.delete('/reportedProducts/:id', async(req, res) => {
+            const id = req.params.id;
+            console.log("Deleting Report ID ", id)
+            const filter = {_id : ObjectId(id)}
+            const result = await reportedProductsCollection.deleteOne(filter);
             res.send(result);
         })
 
