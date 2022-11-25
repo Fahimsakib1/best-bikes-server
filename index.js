@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -106,9 +106,30 @@ async function run(){
         app.post('/products', async(req, res) => {
             const productInfo = req.body;
             console.log(productInfo);
-            const result = await productsCollection.insertOne(productInfo);
+            const result = await bikeDetailsCollection.insertOne(productInfo);
+            res.send(result);
+        }) 
+
+
+        //get the added products by seller using the seller email on My Products Page
+        app.get('/products', async (req, res) => {
+            
+            const email = req.query.email;
+            const query = {email: email};
+            const result = await bikeDetailsCollection.find(query).sort({posted_date: -1}).toArray();
+            res.send(result);
+
+        })
+
+        //delete a product by the seller
+        app.delete('/products/:id', async(req, res) => {
+            const id = req.params.id;
+            console.log("Deleting ID", id)
+            const query = {_id : ObjectId(id)};
+            const result = await bikeDetailsCollection.deleteOne(query);
             res.send(result);
         })
+
 
     }
 
