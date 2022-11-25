@@ -146,7 +146,26 @@ async function run(){
             }
             const result = await usersCollection.find(query).sort({photo: -1}).toArray();
             res.send(result);
+        }) 
+
+        //get the API for deleting a seller by admin
+        app.delete('/sellers/:id', async(req, res) => {
+            const id = req.params.id;
+            console.log("Deleting ID Of Seller", id)
+            const query = {_id : ObjectId(id)};
+            const result = await usersCollection.deleteOne(query);
+            res.send(result);
         })
+
+         //get the API for deleting a buyer by admin
+        app.delete('/buyers/:id', async(req, res) => {
+            const id = req.params.id;
+            console.log("Deleting ID Of Buyer", id)
+            const query = {_id : ObjectId(id)};
+            const result = await usersCollection.deleteOne(query);
+            res.send(result);
+        })
+
 
 
     }
