@@ -207,6 +207,39 @@ async function run(){
         })
 
 
+        //Make a seller verified by admin
+        // app.put('/sellers/:id', async(req, res) => {
+        //     const id = req.params.id;
+        //     const query = {_id: ObjectId(id)};
+            
+        //     const options = { upsert: true }
+        //     const updatedDoc = {
+        //         $set: {
+        //             status: 'Verified'
+        //         }
+        //     }
+        //     const result = await usersCollection.updateOne(query, updatedDoc, options);
+        //     res.send(result);
+        // })
+
+
+        //Make a seller verified by admin
+        app.put('/sellers', async(req, res) => {
+            const email = req.query.email;
+            const query = {email: email};
+            console.log(email);
+            
+            const options = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    status: 'Verified'
+                }
+            }
+            const result1 = await usersCollection.updateOne(query, updatedDoc, options);
+            const result2 = await bikeDetailsCollection.updateMany(query, updatedDoc, options);
+            res.send(result2);
+        })
+
 
     }
 
