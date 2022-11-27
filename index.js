@@ -13,6 +13,10 @@ app.use(express.json());
 require('dotenv').config();
 
 
+//require jwt
+const jwt = require('jsonwebtoken');
+
+
 //userrName: bestBikes
 //password: DOkVGAHDhzxeVVXA
 
@@ -20,6 +24,32 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clu
 console.log(uri)
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+
+
+
+//verify JWT Function
+function verifyJWT (req, res, next){
+    
+    //const accessToken = req.headers.authorization;
+    //console.log(" Token inside verifyJWT function: ", accessToken)
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send('Unauthorized Access')
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (error, decoded) {
+        if (error) {
+            return res.status(403).send({ message: 'Forbidden Access' })
+        }
+        req.decoded = decoded;
+        next();
+    })
+
+}
 
 
 
@@ -115,7 +145,7 @@ async function run(){
 
         //get the added products by seller using the seller email on My Products Page
         app.get('/products', async (req, res) => {
-            
+
             const email = req.query.email;
             const query = {email: email};
             const result = await bikeDetailsCollection.find(query).sort({posted_date: -1}).toArray();
@@ -161,7 +191,7 @@ async function run(){
          //get the API for deleting a buyer by admin
         app.delete('/buyers/:id', async(req, res) => {
             const id = req.params.id;
-            console.log("Deleting ID Of Buyer", id)
+            //console.log("Deleting ID Of Buyer", id)
             const query = {_id : ObjectId(id)};
             const result = await usersCollection.deleteOne(query);
             res.send(result);
@@ -200,7 +230,7 @@ async function run(){
         //delete review By Admin
         app.delete('/reportedProducts/:id', async(req, res) => {
             const id = req.params.id;
-            console.log("Deleting Report ID ", id)
+            //console.log("Deleting Report ID ", id)
             const filter = {_id : ObjectId(id)}
             const result = await reportedProductsCollection.deleteOne(filter);
             res.send(result);
@@ -223,12 +253,12 @@ async function run(){
         // })
 
 
+        
         //Make a seller verified by admin
         app.put('/sellers', async(req, res) => {
             const email = req.query.email;
             const query = {email: email};
-            console.log(email);
-            
+            //console.log(email);
             const options = { upsert: true }
             const updatedDoc = {
                 $set: {
@@ -239,6 +269,55 @@ async function run(){
             const result2 = await bikeDetailsCollection.updateMany(query, updatedDoc, options);
             res.send(result2);
         })
+
+        
+        //update a products status to advertise by the seller
+        app.put('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log("Advertise ID", id);
+
+            const query = {_id: ObjectId(id)}
+
+            const options = {upsert: true};
+            const updatedDoc = {
+                $set: {
+                    advertiseStatus: 'Advertised'
+                }
+            }
+            const result = await bikeDetailsCollection.updateOne(query, updatedDoc, options)
+            res.send(result);
+        })
+
+        //get the advertised products on the home page
+        app.get('/advertisedProducts', async (req, res) => {
+            const query = {
+                advertiseStatus: 'Advertised'
+            };
+            const result = await bikeDetailsCollection.find(query).toArray();
+            res.send(result);
+        })
+
+
+        ///////// JWT Token ////////////////
+
+        //generate token when the user signs up 
+        app.get('/jwt', async(req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+
+            const user = await usersCollection.findOne(query)
+            //console.log(user);
+            
+            if (user) {
+                const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '5d' })
+
+                return res.send({ accessToken: token })
+            }
+            else {
+                return res.status(403).send({ accessToken: 'User not Found' })
+            }
+        })
+
 
 
     }
