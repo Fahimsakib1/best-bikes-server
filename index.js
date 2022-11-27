@@ -17,6 +17,10 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
 
+//require stripe secret key
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+
 //userrName: bestBikes
 //password: DOkVGAHDhzxeVVXA
 
@@ -59,6 +63,8 @@ async function run(){
         const usersCollection = client.db('bestBikes').collection('users');
         const productsCollection = client.db('bestBikes').collection('products');
         const reportedProductsCollection = client.db('bestBikes').collection('reportedProducts');
+        const bookingsCollection = client.db('bestBikes').collection('bookings');
+        const paymentsCollection = client.db('bestBikes').collection('payments');
 
 
         //verify Admin middleware
@@ -74,7 +80,7 @@ async function run(){
             res.send(result);
         })
 
-        //get all the bike details based on category name
+        //get all the bike details based on category
         app.get('/category/:id', async(req, res) => {
             const id = req.params.id;
             const query = {category_id :id};
@@ -82,7 +88,8 @@ async function run(){
             res.send(result);
         })
 
-        //post user info to database when suer signs up and prevent user with same email try to multiple sign in.
+        
+        //post user info to database when user signs up and prevent user with same email try to multiple sign in.
         app.post('/users', async(req, res) => {
             const user = req.body;
             console.log(user);
@@ -112,6 +119,7 @@ async function run(){
             res.send({ isSeller: user?.role === 'Seller' });
         })
 
+        
         //get a specific user  based on  email to check he is buyer or not. The dashboard options will be shown based on the user role
         app.get('/users/buyer/:email', async(req, res) => {
             const email = req.params.email;
@@ -304,23 +312,6 @@ async function run(){
 
 
         //Make a seller verified by admin
-        // app.put('/sellers/:id', async(req, res) => {
-        //     const id = req.params.id;
-        //     const query = {_id: ObjectId(id)};
-            
-        //     const options = { upsert: true }
-        //     const updatedDoc = {
-        //         $set: {
-        //             status: 'Verified'
-        //         }
-        //     }
-        //     const result = await usersCollection.updateOne(query, updatedDoc, options);
-        //     res.send(result);
-        // })
-
-
-        
-        //Make a seller verified by admin
         app.put('/sellers', async(req, res) => {
             const email = req.query.email;
             const query = {email: email};
@@ -354,6 +345,7 @@ async function run(){
             res.send(result);
         })
 
+
         //get the advertised products on the home page
         app.get('/advertisedProducts', verifyJWT, async (req, res) => {
             const query = {
@@ -364,6 +356,101 @@ async function run(){
         })
 
 
+        //post the booking details on database after booking a bike by the user 
+        app.post('/bookings', async(req, res) => {
+            const bookingInfo = req.body;
+            //console.log(bookingInfo);
+            const bookingProducts = await bookingsCollection.insertOne(bookingInfo);
+            res.send(bookingProducts);
+        })
+
+
+        //update the booking status on the productsCollection after buyer booked a product
+        app.put('/bookedProducts/:id', async (req, res) => {
+            const id = req.params.id;
+            //console.log("Booked Product ID", id);
+
+            const query = {_id: ObjectId(id)}
+
+            const options = {upsert: true};
+            const updatedDoc = {
+                $set: {
+                    bookingStatus: 'Booked'
+                }
+            }
+            const result = await bikeDetailsCollection.updateOne(query, updatedDoc, options)
+            res.send(result);
+        })
+
+
+        //get the orders for the buyer by filtering buyer email
+        app.get('/orders', async(req, res) => {
+            const email = req.query.email;
+            //console.log('Email From Buyer Order Page', email);
+            const query = {buyerEmail: email};
+            const result = await bookingsCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        
+        
+        
+        ///////////////////    PAYMENT CODE ///////////////////
+        
+        
+        //get the specific order by ID when buyer wants to pay
+        app.get('/orders/:id', async(req, res) => {
+            const id = req.params.id;
+            //console.log(id);
+            const query = {_id: ObjectId(id)};
+            const order = await bookingsCollection.findOne(query);
+            res.send(order)
+        })
+
+
+        //post the client er information from client side for payment
+        app.post('/create-payment-intent', async(req, res) => {
+            const order = req.body;
+            const price = order.price;
+            //console.log("Booking Price", price);
+            const amount = price * 100;
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                "payment_method_types": [
+                    "card"
+                ],
+
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+
+        })
+
+        
+        //post the payment info to database
+        app.post('/payments', async(req, res) => {
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment);
+
+            const id = payment.bookingId;
+            const query = {_id: ObjectId(id)};
+
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updateBookingData = await bookingsCollection.updateOne(query, updatedDoc)
+            res.send(result);
+        })
+
+        
+        
         
         
         
