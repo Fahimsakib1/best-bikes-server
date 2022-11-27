@@ -31,10 +31,8 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 //verify JWT Function
 function verifyJWT (req, res, next){
     
-    //const accessToken = req.headers.authorization;
-    //console.log(" Token inside verifyJWT function: ", accessToken)
-
     const authHeader = req.headers.authorization;
+    
     if (!authHeader) {
         return res.status(401).send('Unauthorized Access')
     }
@@ -54,12 +52,20 @@ function verifyJWT (req, res, next){
 
 
 async function run(){
+    
     try{
         const categoriesCollection = client.db('bestBikes').collection('categories');
         const bikeDetailsCollection = client.db('bestBikes').collection('bikeDetailsBrandWise');
         const usersCollection = client.db('bestBikes').collection('users');
         const productsCollection = client.db('bestBikes').collection('products');
         const reportedProductsCollection = client.db('bestBikes').collection('reportedProducts');
+
+
+        //verify Admin middleware
+        const verifyAdmin = (req, res, next) => {
+            console.log("Inside Verify Admin",req.decoded.email);
+            next();
+        }
 
         //get all the categories
         app.get('/categories', async(req, res) => {
@@ -116,7 +122,7 @@ async function run(){
         })
 
 
-         //get the Admin using email. The dashboard options will be shown based on the user role
+         //get the Admin using email. The dashboard options will be shown based on the admin role
         app.get('/users/admin/:email', async(req, res) => {
             const email = req.params.email;
             //console.log("Admin Email",email)
@@ -142,18 +148,34 @@ async function run(){
             res.send(result);
         }) 
 
-
+        
         //get the added products by seller using the seller email on My Products Page
-        app.get('/products', async (req, res) => {
-
+        app.get('/products', verifyJWT, async (req, res) => {
+            
             const email = req.query.email;
+            const decodedEmail = req.decoded.email
+            
+            if(email !== decodedEmail) {
+                return res.status(403).send({message: 'Forbidden Access'})
+            }
+            
             const query = {email: email};
             const result = await bikeDetailsCollection.find(query).sort({posted_date: -1}).toArray();
             res.send(result);
         })
 
         //delete a product by the seller
-        app.delete('/products/:id', async(req, res) => {
+        app.delete('/products/:id', verifyJWT,  async(req, res) => {
+            
+            const decodedEmail = req.decoded.email;
+            const filter = {email: decodedEmail};
+            const user = await usersCollection.findOne(filter);
+
+            if(user?.role !== 'Seller') {
+                return res.status(403).send({message: 'Forbidden Access'})
+            }
+            
+            
             const id = req.params.id;
             console.log("Deleting ID", id)
             const query = {_id : ObjectId(id)};
@@ -161,8 +183,18 @@ async function run(){
             res.send(result);
         })
 
+        
         //get all sellers to show the admin on All Sellers route
-        app.get('/sellers', async(req, res) => {
+        app.get('/sellers',  verifyJWT,  async(req, res) => {
+            
+            const decodedEmail = req.decoded.email;
+            const filter = {email: decodedEmail};
+            const user = await usersCollection.findOne(filter);
+
+            if(user?.role !== 'Admin') {
+                return res.status(403).send({message: 'Forbidden Access'})
+            }
+            
             const query = {
                 role: 'Seller'
             }
@@ -170,8 +202,19 @@ async function run(){
             res.send(result);
         })
 
+        
         //get all buyers to show the admin on All Buyers route
-        app.get('/buyers', async(req, res) => {
+        app.get('/buyers', verifyJWT, async(req, res) => {
+            
+            const decodedEmail = req.decoded.email;
+            const filter = {email: decodedEmail};
+            const user = await usersCollection.findOne(filter);
+
+            if(user?.role !== 'Admin') {
+                return res.status(403).send({message: 'Forbidden Access'})
+            }
+            
+            
             const query = {
                 role: 'Buyer'
             }
@@ -179,8 +222,20 @@ async function run(){
             res.send(result);
         }) 
 
+
+
         //get the API for deleting a seller by admin
-        app.delete('/sellers/:id', async(req, res) => {
+        app.delete('/sellers/:id', verifyJWT,  async(req, res) => {
+            
+            const decodedEmail = req.decoded.email;
+            const filter = {email: decodedEmail};
+            const user = await usersCollection.findOne(filter);
+
+            if(user?.role !== 'Admin') {
+                return res.status(403).send({message: 'Forbidden Access'})
+            }
+            
+            
             const id = req.params.id;
             console.log("Deleting ID Of Seller", id)
             const query = {_id : ObjectId(id)};
@@ -188,8 +243,19 @@ async function run(){
             res.send(result);
         })
 
+
          //get the API for deleting a buyer by admin
-        app.delete('/buyers/:id', async(req, res) => {
+        app.delete('/buyers/:id', verifyJWT,  async(req, res) => {
+            
+            const decodedEmail = req.decoded.email;
+            const filter = {email: decodedEmail};
+            const user = await usersCollection.findOne(filter);
+
+            if(user?.role !== 'Admin') {
+                return res.status(403).send({message: 'Forbidden Access'})
+            }
+            
+            
             const id = req.params.id;
             //console.log("Deleting ID Of Buyer", id)
             const query = {_id : ObjectId(id)};
@@ -289,7 +355,7 @@ async function run(){
         })
 
         //get the advertised products on the home page
-        app.get('/advertisedProducts', async (req, res) => {
+        app.get('/advertisedProducts', verifyJWT, async (req, res) => {
             const query = {
                 advertiseStatus: 'Advertised'
             };
@@ -298,6 +364,10 @@ async function run(){
         })
 
 
+        
+        
+        
+        
         ///////// JWT Token ////////////////
 
         //generate token when the user signs up 
@@ -317,6 +387,7 @@ async function run(){
                 return res.status(403).send({ accessToken: 'User not Found' })
             }
         })
+        
 
 
 
