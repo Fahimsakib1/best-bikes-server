@@ -172,6 +172,7 @@ async function run(){
             res.send(result);
         })
 
+        
         //delete a product by the seller
         app.delete('/products/:id', verifyJWT,  async(req, res) => {
             
@@ -285,7 +286,7 @@ async function run(){
             console.log("Already Stored Same Report to Database", alreadyStoredSameProductReportInDataBase.length);
             
             if (alreadyStoredSameProductReportInDataBase.length) {
-                const message = ` ${reportedProductInfo.reporterName}, You have already added this product's report to us`;
+                const message = ` ${reportedProductInfo.reporterName}, You have already added this product's Report to us`;
                 return res.send({ acknowledged: false, message });
             }
             
