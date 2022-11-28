@@ -460,6 +460,16 @@ async function run(){
             res.send(result);
         })
 
+
+        //delete the bike form the category details after payment from buyer
+        app.delete('/payments/:id', async(req, res) => {
+            const id = req.params.id;
+            //console.log("Deleting Report ID ", id)
+            const filter = {_id : ObjectId(id)}
+            const result = await bikeDetailsCollection.deleteOne(filter);
+            res.send(result);
+        })
+
         
         
         
