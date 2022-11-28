@@ -347,7 +347,7 @@ async function run(){
 
 
         //get the advertised products on the home page
-        app.get('/advertisedProducts', verifyJWT, async (req, res) => {
+        app.get('/advertisedProducts',  async (req, res) => {
             const query = {
                 advertiseStatus: 'Advertised'
             };
