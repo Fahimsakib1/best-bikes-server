@@ -436,9 +436,9 @@ async function run(){
             const payment = req.body;
             const result = await paymentsCollection.insertOne(payment);
 
+            
             const id = payment.bookingId;
             const query = {_id: ObjectId(id)};
-
             const updatedDoc = {
                 $set: {
                     paid: true,
@@ -446,6 +446,17 @@ async function run(){
                 }
             }
             const updateBookingData = await bookingsCollection.updateOne(query, updatedDoc)
+
+            
+            const bikeId = payment.bikeOriginalID;
+            const query2 = {_id: ObjectId(bikeId)};
+            const updatedDocument = {
+                $set: {
+                    bookingStatus: 'Paid'
+                }
+            }
+            const updateBikeDetailsData = await bikeDetailsCollection.updateOne(query2, updatedDocument);
+
             res.send(result);
         })
 
