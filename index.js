@@ -542,10 +542,9 @@ async function run(){
             const email = req.query.email;
             console.log("User from Update Profile Page", email);
 
-
             const query = {email: email};
             console.log("Email from Update Profile Page", email);
-            
+
             const options = { upsert: true }
             const updatedDoc = {
                 $set: {
@@ -557,7 +556,54 @@ async function run(){
             res.send(result);
         })
 
-    }
+        
+        //get buyer's payment histiry by the buyer email;
+        app.get('/paymentHistory', async (req, res) => {
+            const email = req.query.email;
+            console.log("User Email from Payment History Page", email);
+            const query = {
+                email: email
+            }
+            const result = await paymentsCollection.find(query).sort({_id: -1}).toArray();
+            res.send(result);
+        })
+
+        
+        //get all the registered users (role = buyer and role = seller but not admin) for admin
+        app.get('/allUsers', async (req, res) => {
+            
+            const query = {}
+            
+            //jodi admin k chara baki user gula k show koraite chai
+            // const query = {
+                
+            //     $and: [
+            //         {role: {$ne: 'Admin'}}
+            //     ]
+            // }
+            const result = await usersCollection.find(query).sort({_id: -1}).toArray();
+            res.send(result);
+        })
+
+        //Admin can make any user admin if he/she wants
+        app.put('/makeAdmin', async(req, res) => {
+            const email = req.query.email;
+            console.log("User Email From Client Side", email);
+
+            const query = {email: email};
+            const options = { upsert: true }
+
+            const updatedDoc = {
+                $set: {
+                    role: 'Admin'
+                }
+            }
+            const result = await usersCollection.updateOne(query, updatedDoc, options);
+            res.send(result);
+
+        })
+
+    } 
 
     finally{
 
