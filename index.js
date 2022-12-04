@@ -402,7 +402,6 @@ async function run(){
         //get the specific order by ID when buyer wants to pay
         app.get('/orders/:id', async(req, res) => {
             const id = req.params.id;
-            //console.log(id);
             const query = {_id: ObjectId(id)};
             const order = await bookingsCollection.findOne(query);
             res.send(order)
@@ -482,13 +481,14 @@ async function run(){
         //generate token when the user signs up 
         app.get('/jwt', async(req, res) => {
             const email = req.query.email;
+            console.log("JWT", email)
             const query = { email: email }
 
             const user = await usersCollection.findOne(query)
             //console.log(user);
             
             if (user) {
-                const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '5d' })
+                const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '7d' })
 
                 return res.send({ accessToken: token })
             }
@@ -511,11 +511,11 @@ run().catch(error => console.log(error))
 
 
 app.get('/', (req, res) => {
-    res.send('Best Bikes Server is running');
+    res.send('Best Bikes Store Server is running');
 })
 
 app.listen(port, (req, res) => {
-    console.log('Best Bikes Server is running on Port', port)
+    console.log('Best Bikes Store Server is running on Port', port)
 })
 
 
