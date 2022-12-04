@@ -504,9 +504,58 @@ async function run(){
             const token = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '7d' });
             res.send({ token })
         })
+
+
+
         
+        //search with bike names and sort the bikes by ascending or descending order of price
+
+        // app.get('/category/:id', async(req, res) => {
+        //     const id = req.params.id;
+        //     const query = {category_id :id};
+
+        //     const service = req.query.service === 'asc' ? 1 : -1;
+
+        //     const search = req.query.search;
+        //     console.log(search);
+
+        //     if(search.length){
+        //         query = {
+        //             $text : {$search: search},
+        //             category_id :id
+        //         }
+        //     }
+
+        //     const bikes = await bikeDetailsCollection.find(query).sort({resale_price: service}).toArray();
+        //     res.send(bikes);
 
 
+        //     // const result = await bikeDetailsCollection.find(query).sort({posted_date : -1}).toArray();
+        //     // res.send(result);
+        // })
+
+
+        //Update User Profile
+        app.put('/users', async(req, res) => {
+            const updateUserInfo = req.body;
+            
+            const email = req.query.email;
+            console.log("User from Update Profile Page", email);
+
+
+            const query = {email: email};
+            console.log("Email from Update Profile Page", email);
+            
+            const options = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    name: updateUserInfo.name,
+                    photo:updateUserInfo.photo
+                }
+            }
+            const result = await usersCollection.updateOne(query, updatedDoc, options);
+            res.send(result);
+        })
 
     }
 
