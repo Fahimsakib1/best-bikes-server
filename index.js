@@ -496,6 +496,14 @@ async function run(){
                 return res.status(403).send({ accessToken: 'User not Found' })
             }
         })
+
+        //code for jwt token when the user login to the system
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            console.log("User From Sever side: ", user);
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '7d' });
+            res.send({ token })
+        })
         
 
 
