@@ -3,7 +3,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const port = process.env.PORT || 5000;
-
+const SSLCommerzPayment = require('sslcommerz-lts')
 
 //set up middle wares
 app.use(cors());
@@ -19,6 +19,12 @@ const jwt = require('jsonwebtoken');
 
 //require stripe secret key
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+
+//SSL Commerz Secret Key
+const store_id = process.env.STORE_ID;
+const store_passwd = process.env.STORE_PASSWORD;
+const is_live = false //true for live, false for sandbox
 
 
 //userrName: bestBikes
@@ -582,7 +588,7 @@ async function run(){
             //     ]
             // }
             const result = await usersCollection.find(query).sort({_id: -1}).toArray();
-            res.send(result);
+            res.send(result); 
         })
 
         //Admin can make any user admin if he/she wants

@@ -22,11 +22,7 @@ This is project is basically divided in two parts.
 
 
 ### GitHub Link (Client Side) of This Project: 
-Github Link Client Side: https://github.com/programming-hero-web-course-4/b612-used-products-resale-clients-side-Fahimsakib1
-
-
-### GitHub Link (Server Side) of This Project:
-Github Link Server Side:  https://github.com/programming-hero-web-course-4/b612-used-products-resale-server-side-Fahimsakib1
+Github Link Client Side: https://github.com/Fahimsakib1/best-bikes-client
 
 
 ### Firebase Live Site Link:
