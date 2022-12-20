@@ -39,10 +39,10 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 
 //verify JWT Function
-function verifyJWT (req, res, next){
-    
+function verifyJWT(req, res, next) {
+
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader) {
         return res.status(401).send('Unauthorized Access')
     }
@@ -61,47 +61,47 @@ function verifyJWT (req, res, next){
 
 
 
-async function run(){
-    
-    try{
+async function run() {
+
+    try {
         const categoriesCollection = client.db('bestBikes').collection('categories');
         const bikeDetailsCollection = client.db('bestBikes').collection('bikeDetailsBrandWise');
         const usersCollection = client.db('bestBikes').collection('users');
         const productsCollection = client.db('bestBikes').collection('products');
         const reportedProductsCollection = client.db('bestBikes').collection('reportedProducts');
         const bookingsCollection = client.db('bestBikes').collection('bookings');
+        const sslCommerzBikePurchaseCollection = client.db('bestBikes').collection('sslCommerzBikePayments');
         const paymentsCollection = client.db('bestBikes').collection('payments');
-
 
         //verify Admin middleware
         const verifyAdmin = (req, res, next) => {
-            console.log("Inside Verify Admin",req.decoded.email);
+            console.log("Inside Verify Admin", req.decoded.email);
             next();
         }
 
         //get all the categories
-        app.get('/categories', async(req, res) => {
+        app.get('/categories', async (req, res) => {
             const query = {};
             const result = await categoriesCollection.find(query).toArray();
             res.send(result);
         })
 
         //get all the bike details based on category
-        app.get('/category/:id', async(req, res) => {
+        app.get('/category/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {category_id :id};
-            const result = await bikeDetailsCollection.find(query).sort({posted_date : -1}).toArray();
+            const query = { category_id: id };
+            const result = await bikeDetailsCollection.find(query).sort({ posted_date: -1 }).toArray();
             res.send(result);
         })
 
-        
+
         //post user info to database when user signs up and prevent user with same email try to multiple sign in.
-        app.post('/users', async(req, res) => {
+        app.post('/users', async (req, res) => {
             const user = req.body;
             console.log(user);
 
             const query = {
-                email: user.email 
+                email: user.email
             }
 
             const findAlreadyUserInDataBase = await usersCollection.find(query).toArray();
@@ -117,7 +117,7 @@ async function run(){
         })
 
         //get a specific user  based on  email to check he is seller or not. The dashboard options will be shown based on the user role
-        app.get('/users/seller/:email', async(req, res) => {
+        app.get('/users/seller/:email', async (req, res) => {
             const email = req.params.email;
             //console.log("Seller Email",email)
             const query = { email: email };
@@ -125,9 +125,9 @@ async function run(){
             res.send({ isSeller: user?.role === 'Seller' });
         })
 
-        
+
         //get a specific user  based on  email to check he is buyer or not. The dashboard options will be shown based on the user role
-        app.get('/users/buyer/:email', async(req, res) => {
+        app.get('/users/buyer/:email', async (req, res) => {
             const email = req.params.email;
             //console.log("Buyer Email",email)
             const query = { email: email };
@@ -136,8 +136,8 @@ async function run(){
         })
 
 
-         //get the Admin using email. The dashboard options will be shown based on the admin role
-        app.get('/users/admin/:email', async(req, res) => {
+        //get the Admin using email. The dashboard options will be shown based on the admin role
+        app.get('/users/admin/:email', async (req, res) => {
             const email = req.params.email;
             //console.log("Admin Email",email)
             const query = { email: email };
@@ -147,181 +147,181 @@ async function run(){
 
 
         //get all the users based on email to show the user role on a badge on header section
-        app.get('/users', async(req, res) => {
+        app.get('/users', async (req, res) => {
             const email = req.query.email;
-            const filter = {email: email};
+            const filter = { email: email };
             const result = await usersCollection.findOne(filter);
             res.send(result);
         })
 
         //add product by seller
-        app.post('/products', async(req, res) => {
+        app.post('/products', async (req, res) => {
             const productInfo = req.body;
             console.log(productInfo);
             const result = await bikeDetailsCollection.insertOne(productInfo);
             res.send(result);
-        }) 
+        })
 
-        
+
         //get the added products by seller using the seller email on My Products Page
         app.get('/products', verifyJWT, async (req, res) => {
-            
+
             const email = req.query.email;
             const decodedEmail = req.decoded.email
-            
-            if(email !== decodedEmail) {
-                return res.status(403).send({message: 'Forbidden Access'})
+
+            if (email !== decodedEmail) {
+                return res.status(403).send({ message: 'Forbidden Access' })
             }
-            
-            const query = {email: email};
-            const result = await bikeDetailsCollection.find(query).sort({posted_date: -1}).toArray();
+
+            const query = { email: email };
+            const result = await bikeDetailsCollection.find(query).sort({ posted_date: -1 }).toArray();
             res.send(result);
         })
 
-        
+
         //delete a product by the seller
-        app.delete('/products/:id', verifyJWT,  async(req, res) => {
-            
+        app.delete('/products/:id', verifyJWT, async (req, res) => {
+
             const decodedEmail = req.decoded.email;
-            const filter = {email: decodedEmail};
+            const filter = { email: decodedEmail };
             const user = await usersCollection.findOne(filter);
 
-            if(user?.role !== 'Seller') {
-                return res.status(403).send({message: 'Forbidden Access'})
+            if (user?.role !== 'Seller') {
+                return res.status(403).send({ message: 'Forbidden Access' })
             }
-            
-            
+
+
             const id = req.params.id;
             console.log("Deleting ID", id)
-            const query = {_id : ObjectId(id)};
+            const query = { _id: ObjectId(id) };
             const result = await bikeDetailsCollection.deleteOne(query);
             res.send(result);
         })
 
-        
+
         //get all sellers to show the admin on All Sellers route
-        app.get('/sellers',  verifyJWT,  async(req, res) => {
-            
+        app.get('/sellers', verifyJWT, async (req, res) => {
+
             const decodedEmail = req.decoded.email;
-            const filter = {email: decodedEmail};
+            const filter = { email: decodedEmail };
             const user = await usersCollection.findOne(filter);
 
-            if(user?.role !== 'Admin') {
-                return res.status(403).send({message: 'Forbidden Access'})
+            if (user?.role !== 'Admin') {
+                return res.status(403).send({ message: 'Forbidden Access' })
             }
-            
+
             const query = {
                 role: 'Seller'
             }
-            const result = await usersCollection.find(query).sort({photo: -1}).toArray();
+            const result = await usersCollection.find(query).sort({ photo: -1 }).toArray();
             res.send(result);
         })
 
-        
+
         //get all buyers to show the admin on All Buyers route
-        app.get('/buyers', verifyJWT, async(req, res) => {
-            
+        app.get('/buyers', verifyJWT, async (req, res) => {
+
             const decodedEmail = req.decoded.email;
-            const filter = {email: decodedEmail};
+            const filter = { email: decodedEmail };
             const user = await usersCollection.findOne(filter);
 
-            if(user?.role !== 'Admin') {
-                return res.status(403).send({message: 'Forbidden Access'})
+            if (user?.role !== 'Admin') {
+                return res.status(403).send({ message: 'Forbidden Access' })
             }
-            
-            
+
+
             const query = {
                 role: 'Buyer'
             }
-            const result = await usersCollection.find(query).sort({photo: -1}).toArray();
+            const result = await usersCollection.find(query).sort({ photo: -1 }).toArray();
             res.send(result);
-        }) 
+        })
 
 
 
         //get the API for deleting a seller by admin
-        app.delete('/sellers/:id', verifyJWT,  async(req, res) => {
-            
+        app.delete('/sellers/:id', verifyJWT, async (req, res) => {
+
             const decodedEmail = req.decoded.email;
-            const filter = {email: decodedEmail};
+            const filter = { email: decodedEmail };
             const user = await usersCollection.findOne(filter);
 
-            if(user?.role !== 'Admin') {
-                return res.status(403).send({message: 'Forbidden Access'})
+            if (user?.role !== 'Admin') {
+                return res.status(403).send({ message: 'Forbidden Access' })
             }
-            
-            
+
+
             const id = req.params.id;
             console.log("Deleting ID Of Seller", id)
-            const query = {_id : ObjectId(id)};
+            const query = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(query);
             res.send(result);
         })
 
 
-         //get the API for deleting a buyer by admin
-        app.delete('/buyers/:id', verifyJWT,  async(req, res) => {
-            
+        //get the API for deleting a buyer by admin
+        app.delete('/buyers/:id', verifyJWT, async (req, res) => {
+
             const decodedEmail = req.decoded.email;
-            const filter = {email: decodedEmail};
+            const filter = { email: decodedEmail };
             const user = await usersCollection.findOne(filter);
 
-            if(user?.role !== 'Admin') {
-                return res.status(403).send({message: 'Forbidden Access'})
+            if (user?.role !== 'Admin') {
+                return res.status(403).send({ message: 'Forbidden Access' })
             }
-            
-            
+
+
             const id = req.params.id;
             //console.log("Deleting ID Of Buyer", id)
-            const query = {_id : ObjectId(id)};
+            const query = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(query);
             res.send(result);
-        }) 
+        })
 
         //Post Reported Products
-        app.post('/reportedProducts', async(req, res) => {
+        app.post('/reportedProducts', async (req, res) => {
             const reportedProductInfo = req.body;
             console.log(reportedProductInfo);
-            
+
             const query = {
-                productDataBaseId: reportedProductInfo.productDataBaseId ,
-                reporterEmail:reportedProductInfo.reporterEmail
+                productDataBaseId: reportedProductInfo.productDataBaseId,
+                reporterEmail: reportedProductInfo.reporterEmail
             }
 
             const alreadyStoredSameProductReportInDataBase = await reportedProductsCollection.find(query).toArray();
             console.log("Already Stored Same Report to Database", alreadyStoredSameProductReportInDataBase.length);
-            
+
             if (alreadyStoredSameProductReportInDataBase.length) {
                 const message = ` ${reportedProductInfo.reporterName}, You have already added this product's Report to us`;
                 return res.send({ acknowledged: false, message });
             }
-            
+
             const result = await reportedProductsCollection.insertOne(reportedProductInfo);
             res.send(result);
 
         })
 
         //get all the reported Products
-        app.get('/reportedProducts', async(req, res) => {
+        app.get('/reportedProducts', async (req, res) => {
             const query = {}
-            const result = await reportedProductsCollection.find(query).sort({report_posted_date : -1}).toArray();
+            const result = await reportedProductsCollection.find(query).sort({ report_posted_date: -1 }).toArray();
             res.send(result);
         })
 
         //delete review By Admin
-        app.delete('/reportedProducts/:id', async(req, res) => {
+        app.delete('/reportedProducts/:id', async (req, res) => {
             const id = req.params.id;
             //console.log("Deleting Report ID ", id)
-            const filter = {_id : ObjectId(id)}
+            const filter = { _id: ObjectId(id) }
             const result = await reportedProductsCollection.deleteOne(filter);
             res.send(result);
         })
 
 
         //Make a seller verified by admin
-        app.put('/sellers', async(req, res) => {
+        app.put('/sellers', async (req, res) => {
             const email = req.query.email;
-            const query = {email: email};
+            const query = { email: email };
             //console.log(email);
             const options = { upsert: true }
             const updatedDoc = {
@@ -334,15 +334,15 @@ async function run(){
             res.send(result2);
         })
 
-        
+
         //update a products status to advertise by the seller
         app.put('/products/:id', async (req, res) => {
             const id = req.params.id;
             console.log("Advertise ID", id);
 
-            const query = {_id: ObjectId(id)}
+            const query = { _id: ObjectId(id) }
 
-            const options = {upsert: true};
+            const options = { upsert: true };
             const updatedDoc = {
                 $set: {
                     advertiseStatus: 'Advertised'
@@ -354,7 +354,7 @@ async function run(){
 
 
         //get the advertised products on the home page
-        app.get('/advertisedProducts',  async (req, res) => {
+        app.get('/advertisedProducts', async (req, res) => {
             const query = {
                 advertiseStatus: 'Advertised'
             };
@@ -364,7 +364,7 @@ async function run(){
 
 
         //post the booking details on database after booking a bike by the user 
-        app.post('/bookings', async(req, res) => {
+        app.post('/bookings', async (req, res) => {
             const bookingInfo = req.body;
             //console.log(bookingInfo);
             const bookingProducts = await bookingsCollection.insertOne(bookingInfo);
@@ -377,9 +377,9 @@ async function run(){
             const id = req.params.id;
             //console.log("Booked Product ID", id);
 
-            const query = {_id: ObjectId(id)}
+            const query = { _id: ObjectId(id) }
 
-            const options = {upsert: true};
+            const options = { upsert: true };
             const updatedDoc = {
                 $set: {
                     bookingStatus: 'Booked'
@@ -391,31 +391,31 @@ async function run(){
 
 
         //get the orders for the buyer by filtering buyer email
-        app.get('/orders', async(req, res) => {
+        app.get('/orders', async (req, res) => {
             const email = req.query.email;
             //console.log('Email From Buyer Order Page', email);
-            const query = {buyerEmail: email};
+            const query = { buyerEmail: email };
             const result = await bookingsCollection.find(query).toArray();
             res.send(result);
         })
 
-        
-        
-        
+
+
+
         ///////////////////    PAYMENT CODE ///////////////////
-        
-        
+
+
         //get the specific order by ID when buyer wants to pay
-        app.get('/orders/:id', async(req, res) => {
+        app.get('/orders/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: ObjectId(id)};
+            const query = { _id: ObjectId(id) };
             const order = await bookingsCollection.findOne(query);
             res.send(order)
         })
 
 
         //post the client er information from client side for payment
-        app.post('/create-payment-intent', async(req, res) => {
+        app.post('/create-payment-intent', async (req, res) => {
             const order = req.body;
             const price = order.price;
             //console.log("Booking Price", price);
@@ -436,15 +436,15 @@ async function run(){
 
         })
 
-        
+
         //post the payment info to database
-        app.post('/payments', async(req, res) => {
+        app.post('/payments', async (req, res) => {
             const payment = req.body;
             const result = await paymentsCollection.insertOne(payment);
 
-            
+
             const id = payment.bookingId;
-            const query = {_id: ObjectId(id)};
+            const query = { _id: ObjectId(id) };
             const updatedDoc = {
                 $set: {
                     paid: true,
@@ -453,9 +453,9 @@ async function run(){
             }
             const updateBookingData = await bookingsCollection.updateOne(query, updatedDoc)
 
-            
+
             const bikeId = payment.bikeOriginalID;
-            const query2 = {_id: ObjectId(bikeId)};
+            const query2 = { _id: ObjectId(bikeId) };
             const updatedDocument = {
                 $set: {
                     bookingStatus: 'Paid'
@@ -468,31 +468,31 @@ async function run(){
 
 
         //delete the bike form the category details after payment from buyer
-        app.delete('/payments/:id', async(req, res) => {
+        app.delete('/payments/:id', async (req, res) => {
             const id = req.params.id;
             //console.log("Deleting Report ID ", id)
-            const filter = {_id : ObjectId(id)}
+            const filter = { _id: ObjectId(id) }
             const result = await bikeDetailsCollection.deleteOne(filter);
             res.send(result);
         })
 
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
         ///////// JWT Token ////////////////
 
         //generate token when the user signs up 
-        app.get('/jwt', async(req, res) => {
+        app.get('/jwt', async (req, res) => {
             const email = req.query.email;
             console.log("JWT", email)
             const query = { email: email }
 
             const user = await usersCollection.findOne(query)
             //console.log(user);
-            
+
             if (user) {
                 const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '7d' })
 
@@ -513,7 +513,7 @@ async function run(){
 
 
 
-        
+
         //search with bike names and sort the bikes by ascending or descending order of price
 
         // app.get('/category/:id', async(req, res) => {
@@ -542,27 +542,27 @@ async function run(){
 
 
         //Update User Profile
-        app.put('/users', async(req, res) => {
+        app.put('/users', async (req, res) => {
             const updateUserInfo = req.body;
-            
+
             const email = req.query.email;
             console.log("User from Update Profile Page", email);
 
-            const query = {email: email};
+            const query = { email: email };
             console.log("Email from Update Profile Page", email);
 
             const options = { upsert: true }
             const updatedDoc = {
                 $set: {
                     name: updateUserInfo.name,
-                    photo:updateUserInfo.photo
+                    photo: updateUserInfo.photo
                 }
             }
             const result = await usersCollection.updateOne(query, updatedDoc, options);
             res.send(result);
         })
 
-        
+
         //get buyer's payment histiry by the buyer email;
         app.get('/paymentHistory', async (req, res) => {
             const email = req.query.email;
@@ -570,33 +570,33 @@ async function run(){
             const query = {
                 email: email
             }
-            const result = await paymentsCollection.find(query).sort({_id: -1}).toArray();
+            const result = await paymentsCollection.find(query).sort({ _id: -1 }).toArray();
             res.send(result);
         })
 
-        
+
         //get all the registered users (role = buyer and role = seller but not admin) for admin
         app.get('/allUsers', async (req, res) => {
-            
+
             const query = {}
-            
+
             //jodi admin k chara baki user gula k show koraite chai
             // const query = {
-                
+
             //     $and: [
             //         {role: {$ne: 'Admin'}}
             //     ]
             // }
-            const result = await usersCollection.find(query).sort({_id: -1}).toArray();
-            res.send(result); 
+            const result = await usersCollection.find(query).sort({ _id: -1 }).toArray();
+            res.send(result);
         })
 
         //Admin can make any user admin if he/she wants
-        app.put('/makeAdmin', async(req, res) => {
+        app.put('/makeAdmin', async (req, res) => {
             const email = req.query.email;
             console.log("User Email From Client Side", email);
 
-            const query = {email: email};
+            const query = { email: email };
             const options = { upsert: true }
 
             const updatedDoc = {
@@ -606,12 +606,158 @@ async function run(){
             }
             const result = await usersCollection.updateOne(query, updatedDoc, options);
             res.send(result);
+        })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //**************** Code for SSL *********************
+
+        // get the bike details on a new page after clicking on the Buy Button
+        app.get('/bikeDetails/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await bikeDetailsCollection.findOne(query);
+            res.send(result);
+        })
+
+        //bike payment related code
+        app.post('/orders', async (req, res) => {
+
+            const orders = req.body;
+            const filter = { _id: ObjectId(orders.bikeID) };
+
+            const orderedBike = await bikeDetailsCollection.findOne(filter)
+
+            //console.log("Bike Details", orderedBike);
+
+
+            const transactionID = new ObjectId().toString(); //unique transactionID for each api call
+            
+            const data = {
+                total_amount: orderedBike.resale_price,
+                currency: orders.currency,
+                tran_id: transactionID,
+                success_url: `http://localhost:5000/payment/success?transactionID=${transactionID}`,
+                fail_url: `http://localhost:5000/payment/fail?transactionID=${transactionID}`,
+                cancel_url: 'http://localhost:5000/payment/cancel',
+                ipn_url: 'http://localhost:3030/ipn',
+                shipping_method: 'Courier',
+                product_name: orders.bikeModel,
+                product_category: orders.bikeCompany,
+                product_profile: orders.bikeImage,
+                cus_name: orders.buyerName,
+                cus_email: orders.buyerEmail,
+                cus_add1: orders.buyerLocation,
+                cus_add2: 'Dhaka',
+                cus_city: 'Dhaka',
+                cus_state: 'Dhaka',
+                cus_postcode: orders.postCode,
+                cus_country: 'Bangladesh',
+                cus_phone: orders.buyerPhone,
+                cus_fax: '01711111111',
+                ship_name: orders.buyerName,
+                ship_add1: orders.buyerLocation,
+                ship_add2: 'Dhaka',
+                ship_city: 'Dhaka',
+                ship_state: 'Dhaka',
+                ship_postcode: orders.postCode,
+                ship_country: 'Bangladesh',
+            };
+            console.log(data);
+
+
+            const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
+            sslcz.init(data).then(apiResponse => {
+                // Redirect the user to payment gateway
+                let GatewayPageURL = apiResponse.GatewayPageURL
+
+                sslCommerzBikePurchaseCollection.insertOne(
+                    {
+                        ...orders,
+                        transactionID: transactionID,
+                        sellingPrice: orderedBike.resale_price,
+                        paymentStatus: false
+                    }
+                );
+
+                res.send({ url: GatewayPageURL })
+            });
 
         })
 
-    } 
+        //get the success data on a client side route
+        app.post('/payment/success', async(req, res) => {
+            
+            const transactionID = req.query.transactionID;
+            //console.log("Transaction ID: ", transactionID);
+            
+            const options = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    paymentStatus: true,
+                    paymentGateway: 'SSL Commerz',
+                    PaidDate: new Date()
+                }
+            }
 
-    finally{
+            const result = await sslCommerzBikePurchaseCollection.updateOne({transactionID: transactionID}, updatedDoc, options);
+
+            if(result.modifiedCount > 0){
+                res.redirect(`http://localhost:3000/payment/success?transactionID=${transactionID}`)
+            }
+
+        })
+
+
+
+        //get the fail data on a client side route
+        app.post('/payment/fail', async(req, res) => {
+            
+            const transactionID = req.query.transactionID;
+
+            const result = await sslCommerzBikePurchaseCollection.deleteOne({transactionID: transactionID});
+
+            if(result.deletedCount > 0){
+                res.redirect('http://localhost:3000/payment/fail')
+            }
+
+        })
+
+
+
+
+
+        // get the payment details by the transactionID to show the details on the client side
+        app.get('/bikePayment/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { transactionID: id };
+            const result = await sslCommerzBikePurchaseCollection.findOne(query);
+            res.send(result);
+        })
+
+
+
+
+
+    }
+
+    finally {
 
     }
 }

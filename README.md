@@ -20,10 +20,8 @@ This is project is basically divided in two parts.
 - JWT is one of the core purpose of this project also. It helps to secure the server side. If a user's token is not verified then he cant go on that route in clint side.
 
 
-
 ### GitHub Link (Client Side) of This Project: 
 Github Link Client Side: https://github.com/Fahimsakib1/best-bikes-client
-
 
 ### Firebase Live Site Link:
 Live Site Link: https://best-bikes-client.web.app
